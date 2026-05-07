@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STR Investment Property Scenario Builder</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f0f4f8; --surface: #fff; --border: #dde3ec;
+  --text: #1a2232; --muted: #5a6a82;
+  --primary: #1e40af; --primary-lt: #dbeafe;
+  --green: #15803d; --green-lt: #dcfce7;
+  --red: #b91c1c; --red-lt: #fee2e2;
+  --amber: #b45309; --amber-lt: #fef3c7;
+  --r: 8px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+header { background: linear-gradient(135deg, #1e3a8a, #1e40af); color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+header .sub { font-size: 12px; opacity: .75; margin-top: 1px; }
+.layout { display: grid; grid-template-columns: 350px 1fr; min-height: calc(100vh - 52px); }
+
+/* Sidebar */
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px; }
+.section { border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 8px; overflow: visible; }
+.sec-hd { background: #f4f7fb; padding: 9px 12px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); cursor: pointer; display: flex; justify-content: space-between; user-select: none; border-radius: var(--r) var(--r) 0 0; }
+.sec-hd:hover { background: #e8edf5; }
+.sec-bd { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.sec-bd.closed { display: none; }
+.field { display: flex; flex-direction: column; gap: 2px; }
+.field label { font-size: 11px; color: var(--muted); font-weight: 500; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.field input, .field select { border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-size: 13px; width: 100%; background: #fff; color: var(--text); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-lt); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cb-group { display: flex; flex-direction: column; gap: 7px; }
+.cb-item { display: flex; gap: 8px; align-items: flex-start; }
+.cb-item input[type=checkbox] { margin-top: 3px; cursor: pointer; width: 14px; height: 14px; }
+.cb-label strong { display: block; font-size: 12px; color: var(--text); }
+.cb-label span { font-size: 11px; color: var(--muted); }
+.sec-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+/* Tooltips */
+.tip-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+.tip-icon { color: var(--primary); font-weight: 800; cursor: pointer; font-size: 9px; background: var(--primary-lt); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #93c5fd; transition: all .15s; }
+.tip-icon:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tip-box { display: none; position: absolute; right: 0; top: calc(100% + 5px); z-index: 500; background: #1e293b; color: #e2e8f0; font-size: 12px; font-weight: 400; padding: 10px 13px; border-radius: 7px; width: 260px; line-height: 1.55; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.tip-box::before { content: ''; position: absolute; bottom: 100%; right: 5px; border: 5px solid transparent; border-bottom-color: #1e293b; }
+.tip-wrap.open .tip-box { display: block; }
+
+/* Main panel */
+.main { padding: 18px; overflow-y: auto; }
+.tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+.tab { padding: 7px 16px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; border-radius: 4px 4px 0 0; }
+.tab:hover { background: #f4f7fb; color: var(--text); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--primary-lt); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 13px; }
+.card .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+.card .val { font-size: 21px; font-weight: 800; margin: 3px 0 2px; }
+.card .sub { font-size: 11px; color: var(--muted); }
+.card.hi { background: var(--green-lt); border-left: 4px solid var(--green); }
+.card.pos { border-left: 4px solid var(--green); }
+.card.neg { border-left: 4px solid var(--red); }
+.card.neu { border-left: 4px solid var(--primary); }
+.c-pos { color: var(--green); }
+.c-neg { color: var(--red); }
+.c-neu { color: var(--primary); }
+
+/* Tables */
+.tbl { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+.tbl th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; padding: 7px 10px; background: #f8fafc; border-bottom: 1px solid var(--border); }
+.tbl th:last-child, .tbl td:last-child { text-align: right; }
+.tbl td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; }
+.tbl tr.tot td { font-weight: 700; background: #f4f7fb; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+.tbl tr.sep td { padding: 3px 0; border: none; }
+.tbl tr.grp td { font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: .5px; background: #fafbfd; padding: 5px 10px; }
+
+/* Strategy boxes */
+.strat { border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; }
+.strat-hd { padding: 10px 13px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.strat-bd { padding: 10px 13px; font-size: 12px; color: #374151; border-top: 1px solid var(--border); line-height: 1.65; }
+.strat-bd strong { color: var(--text); }
+.strat.on .strat-hd { background: var(--green-lt); color: var(--green); }
+.strat.off .strat-hd { background: #f8fafc; color: var(--muted); }
+.strat.warn .strat-hd { background: var(--amber-lt); color: var(--amber); }
+
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; letter-spacing: .3px; }
+.badge.g { background: var(--green); color: #fff; }
+.badge.r { background: var(--red); color: #fff; }
+.badge.a { background: var(--amber); color: #fff; }
+.badge.gr { background: #94a3b8; color: #fff; }
+
+/* Projection */
+.ptbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ptbl th { padding: 8px 10px; background: var(--primary); color: #fff; font-weight: 600; font-size: 11px; text-align: right; }
+.ptbl th:first-child { text-align: left; min-width: 160px; }
+.ptbl td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.ptbl td:first-child { text-align: left; font-weight: 500; color: var(--muted); }
+.ptbl tr.hi td { font-weight: 800; background: var(--primary-lt); color: var(--primary); }
+.ptbl tr.hi td:first-child { color: var(--primary); }
+.ptbl tr:nth-child(even):not(.hi) td { background: #f8fafc; }
+
+/* Alerts */
+.alert { border-radius: var(--r); padding: 11px 13px; font-size: 12px; margin-bottom: 14px; line-height: 1.6; }
+.alert.info { background: var(--primary-lt); border: 1px solid #93c5fd; color: #1e3a8a; }
+.alert.warn { background: var(--amber-lt); border: 1px solid #fcd34d; color: #78350f; }
+.alert.good { background: var(--green-lt); border: 1px solid #86efac; color: #14532d; }
+
+.ptitle { font-size: 14px; font-weight: 700; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.col-lbl { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px; padding: 4px 8px; background: var(--primary-lt); border-radius: 4px; }
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Scenario buttons */
+.btn { padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid; display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all .15s; }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); flex: 1; }
+.btn-primary:hover { background: #1e3a8a; }
+.btn-ghost { background: #fff; color: var(--text); border-color: var(--border); flex: 1; }
+.btn-ghost:hover { background: #f4f7fb; }
+.btn-danger { background: #fff; color: var(--red); border-color: #fca5a5; }
+.btn-danger:hover { background: var(--red-lt); }
+.btn-row { display: flex; gap: 6px; }
+
+/* Comparison table in tax tab */
+.cmp-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+.cmp-tbl th { padding: 7px 10px; background: var(--primary); color: #fff; font-weight: 600; font-size: 11px; text-align: right; }
+.cmp-tbl th:first-child { text-align: left; }
+.cmp-tbl td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.cmp-tbl td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
+.cmp-tbl tr.hi td { font-weight: 800; background: var(--green-lt); color: var(--green); }
+.cmp-tbl tr.hi td:first-child { color: var(--green); }
+
+/* Wealth Building */
+.wb-config { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; padding:12px 14px; background:#f8fafc; border:1px solid var(--border); border-radius:var(--r); margin-bottom:16px; }
+.wb-cfg-item { display:flex; flex-direction:column; gap:3px; }
+.wb-cfg-item label { font-size:11px; color:var(--muted); font-weight:600; white-space:nowrap; }
+.wb-cfg-item input { width:82px; padding:5px 7px; border:1px solid var(--border); border-radius:4px; font-size:13px; background:#fff; color:var(--text); }
+.wb-cfg-item input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-lt); }
+.ptbl tr.exchange-row td { background:var(--amber-lt) !important; color:var(--amber); font-weight:700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>STR Investment Property Scenario Builder</h1>
+    <div class="sub">Short-Term Rental | Full Tax Analysis | 2025 Tax Year</div>
+  </div>
+  <div style="font-size:11px;opacity:.7;text-align:right;">Built for Lou & Cynthia<br>Not tax advice — consult a CPA</div>
+</header>
+
+<div class="layout">
+
+<!-- ═══ SIDEBAR ═══ -->
+<div class="sidebar">
+
+  <!-- Scenario Manager -->
+  <div class="section" style="border-color:#c7d2fe;">
+    <div class="sec-hd" style="background:#eef2ff;color:var(--primary);border-radius:var(--r) var(--r) 0 0;" onclick="tog(this)">💾 Scenarios <span>▾</span></div>
+    <div class="sec-bd" style="gap:7px;">
+      <div class="field">
+        <label>Scenario Name</label>
+        <input type="text" id="scenarioName" placeholder='e.g. "Beach house $500K"' style="font-size:12px;">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveBtn" onclick="saveScenario()">Save</button>
+        <button class="btn btn-ghost" onclick="exportScenario()">Export JSON</button>
+      </div>
+      <div class="field" style="margin-top:2px;">
+        <label>Load Saved</label>
+        <select id="scenarioList" onchange="loadScenario()">
+          <option value="">— select to load —</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <label class="btn btn-ghost" style="cursor:pointer;">
+          Import JSON <input type="file" accept=".json" onchange="importScenario(event)" style="display:none">
+        </label>
+        <button class="btn btn-danger" onclick="deleteScenario()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">🏠 Property Details <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="field"><label>Purchase Price ($)</label>
+        <input type="number" id="purchasePrice" value="500000" step="5000" oninput="calc()"></div>
+      <div class="row2">
+        <div class="field">
+          <label>Land Value %
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">The portion of the purchase price attributed to land, which is NOT depreciable. Residential properties are typically 15–30% land. Your county tax assessment often breaks this out. Higher land % = less depreciable basis = less depreciation.</div></span>
+          </label>
+          <input type="number" id="landPct" value="20" min="5" max="60" oninput="calc()"></div>
+        <div class="field"><label>Closing Costs %</label>
+          <input type="number" id="closingCostPct" value="2.5" step="0.5" oninput="calc()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">💰 Financing <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="field"><label>Down Payment %</label>
+        <input type="number" id="downPct" value="20" min="3" max="100" oninput="calc()"></div>
+      <div class="row2">
+        <div class="field"><label>Interest Rate %</label>
+          <input type="number" id="rate" value="7.0" step="0.125" oninput="calc()"></div>
+        <div class="field"><label>Term (years)</label>
+          <input type="number" id="term" value="30" oninput="calc()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">📈 STR Revenue <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="row2">
+        <div class="field"><label>Nightly Rate ($)</label>
+          <input type="number" id="nightlyRate" value="200" oninput="calc()"></div>
+        <div class="field"><label>Occupancy %</label>
+          <input type="number" id="occ" value="65" min="0" max="100" oninput="calc()"></div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Avg Stay (days)
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">CRITICAL for the STR Loophole. If average guest stay is 7 days or less, the IRS classifies this as a trade/business (not rental activity), making losses non-passive. Set this based on your target market — beach/vacation rentals often average 3–5 nights.</div></span>
+          </label>
+          <input type="number" id="avgStay" value="4" min="1" oninput="calc()"></div>
+        <div class="field"><label>Cleaning Fee Charged ($)</label>
+          <input type="number" id="cleanFeeIn" value="150" oninput="calc()"></div>
+      </div>
+      <div class="field"><label>Airbnb Host Fee % (of gross)</label>
+        <input type="number" id="platformFee" value="3" step="0.5" oninput="calc()"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">🧾 STR Operating Expenses <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="field"><label>Property Tax (annual $)</label>
+        <input type="number" id="propTax" value="7000" step="250" oninput="calc()"></div>
+      <div class="field"><label>Insurance (annual $)</label>
+        <input type="number" id="insurance" value="3500" step="250" oninput="calc()"></div>
+      <div class="row2">
+        <div class="field"><label>HOA (monthly $)</label>
+          <input type="number" id="hoa" value="0" oninput="calc()"></div>
+        <div class="field"><label>Utilities (monthly $)</label>
+          <input type="number" id="utilities" value="300" oninput="calc()"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Pool Service (mo $)</label>
+          <input type="number" id="pool" value="150" oninput="calc()"></div>
+        <div class="field"><label>Landscaping (mo $)</label>
+          <input type="number" id="lawn" value="100" oninput="calc()"></div>
+      </div>
+      <div class="field"><label>Cleaning Cost / Stay ($)</label>
+        <input type="number" id="cleanCostPer" value="100" oninput="calc()"></div>
+      <div class="field">
+        <label>Property Mgmt % of Revenue
+          <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Fee charged by a property management company to handle bookings, guest communication, check-ins, and maintenance calls. STR managers typically charge 20–30% of revenue. If Cynthia is self-managing (the plan), keep this at 0 — and those management hours count toward her REPS 750-hour requirement.</div></span>
+        </label>
+        <input type="number" id="mgmt" value="0" min="0" max="30" oninput="calc()"></div>
+      <div class="field">
+        <label>Maintenance Reserve % of Value
+          <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Annual budget for repairs and replacements: HVAC, water heater, roof patches, appliances, furniture wear-and-tear. STRs need a higher reserve than long-term rentals — guests are harder on properties. 1% is the floor; 1.5–2% is more realistic for an active Airbnb. This isn't a cash account, just a planning number.</div></span>
+        </label>
+        <input type="number" id="maint" value="1.0" step="0.25" oninput="calc()"></div>
+      <div class="row2">
+        <div class="field">
+          <label>Supplies (monthly $)
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Ongoing restocking between stays: toilet paper, paper towels, soap, shampoo, coffee pods, dish soap, laundry detergent, trash bags, light bulbs. $100–150/mo is typical for a moderately active listing. Fully-stocked "resort-style" properties with lots of amenities run $200+/mo.</div></span>
+          </label>
+          <input type="number" id="supplies" value="100" oninput="calc()"></div>
+        <div class="field">
+          <label>Other Annual ($)
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Catch-all for: CPA/accountant fees (budget $1,500–3,000/yr — you need one for this tax strategy), dynamic pricing software (PriceLabs, Wheelhouse ~$300/yr), smart lock subscriptions, LLC registered agent fees, pest control, supplemental insurance riders, and any platform subscriptions.</div></span>
+          </label>
+          <input type="number" id="other" value="1200" oninput="calc()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Existing LTR ── -->
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">🏘️ Existing Long-Term Rental <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="field">
+        <label>Include in Analysis
+          <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Model your existing duplex rental alongside the new STR. This shows how REPS qualifies across both properties combined — and reveals any currently-trapped LTR losses that REPS would unlock.</div></span>
+        </label>
+        <select id="inclLTR" onchange="toggleLTR()">
+          <option value="yes" selected>Yes — Include my duplex rental</option>
+          <option value="no">No — New STR only</option>
+        </select>
+      </div>
+      <div id="ltrFields">
+        <div class="field"><label>Monthly Rent Income ($)</label>
+          <input type="number" id="ltrRent" value="3300" oninput="calc()"></div>
+        <div class="field">
+          <label>Annual Deductible Expenses ($)
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Include the rental unit's share of: mortgage interest, property taxes, insurance, maintenance, and repairs. Do NOT include depreciation — that's calculated from the building basis. For a duplex where you occupy one half, allocate roughly 50% of whole-building costs.</div></span>
+          </label>
+          <input type="number" id="ltrExps" value="20000" step="500" oninput="calc()"></div>
+        <div class="field">
+          <label>Building Basis — Rental Unit ($)
+            <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">The depreciable cost of the rental unit only (not land, not your personal half). Rough formula: (duplex purchase price × rental unit % of building) × (1 − land %). Example: $400K duplex, 50% rental, 20% land → $400K × 50% × 80% = $160K basis. Depreciation = basis ÷ 27.5 years.</div></span>
+          </label>
+          <input type="number" id="ltrBasis" value="150000" step="5000" oninput="calc()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tax Strategy ── -->
+  <div class="section">
+    <div class="sec-hd" onclick="tog(this)">⚖️ Tax Strategy <span>▾</span></div>
+    <div class="sec-bd">
+      <div class="field"><label>Your W-2 Income ($)</label>
+        <input type="number" id="w2" value="400000" step="10000" oninput="calc()"></div>
+      <div class="row2">
+        <div class="field"><label>Filing Status</label>
+          <select id="filing" onchange="calc()">
+            <option value="mfj">Married Filing Jointly</option>
+            <option value="single">Single</option>
+          </select></div>
+        <div class="field"><label>State Tax Rate %</label>
+          <input type="number" id="stateRate" value="6.0" step="0.5" oninput="calc()"></div>
+      </div>
+
+      <div class="sec-tag">Depreciation</div>
+      <div class="field">
+        <label>Bonus Depreciation %
+          <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Under TCJA, bonus depreciation phases down: 80% in 2023, 60% in 2024, 40% in 2025, 20% in 2026. Congress has been debating restoring 100%. Set to 40 for current law, or 100 to model the "if it passes" scenario. Only applies to 5-yr and 15-yr property from a cost seg study.</div></span>
+        </label>
+        <input type="number" id="bonusDep" value="40" min="0" max="100" oninput="calc()"></div>
+      <div class="field"><label>Cost Segregation Study</label>
+        <select id="costSeg" onchange="toggleCostSeg()">
+          <option value="yes" selected>Yes — Accelerated (recommended)</option>
+          <option value="no">No — Standard 27.5yr only</option>
+        </select></div>
+      <div id="costSegFields">
+        <div class="row2" style="margin-top:4px">
+          <div class="field">
+            <label>5-yr property %
+              <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Personal property reclassified from 27.5-yr to 5-yr depreciation. Includes: appliances, furniture, carpeting, window treatments, small fixtures. A cost seg study typically finds 15–25% of building cost here. This component gets bonus depreciation.</div></span>
+            </label>
+            <input type="number" id="pct5" value="20" min="0" max="50" oninput="calc()"></div>
+          <div class="field">
+            <label>15-yr property %
+              <span class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box">Land improvements reclassified from 27.5-yr to 15-yr depreciation. Includes: swimming pool, outdoor lighting, driveways, parking areas, fencing, landscaping. Typically 5–15% of building cost. This component also gets bonus depreciation.</div></span>
+            </label>
+            <input type="number" id="pct15" value="10" min="0" max="30" oninput="calc()"></div>
+        </div>
+        <div class="field" style="margin-top:4px"><label>Cost Seg Study Fee ($)</label>
+          <input type="number" id="costSegFee" value="5000" step="500" oninput="calc()"></div>
+      </div>
+
+      <div class="sec-tag">Active Loss Strategies</div>
+      <div class="cb-group" style="margin-top:4px">
+        <label class="cb-item">
+          <input type="checkbox" id="strLoop" checked onchange="calc()">
+          <div class="cb-label">
+            <strong>STR Loophole (IRC §469)</strong>
+            <span>Avg stay ≤7 days + material participation → STR losses offset W-2</span>
+          </div>
+        </label>
+        <label class="cb-item">
+          <input type="checkbox" id="reps" onchange="calc()">
+          <div class="cb-label">
+            <strong>REPS — Real Estate Professional</strong>
+            <span>750+ hrs/yr across ALL properties → ALL rental losses offset W-2</span>
+          </div>
+        </label>
+        <label class="cb-item">
+          <input type="checkbox" id="qbi" checked onchange="calc()">
+          <div class="cb-label">
+            <strong>QBI Deduction (§199A)</strong>
+            <span>20% of net rental income (profitable years only)</span>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('summary',this)">Summary</div>
+    <div class="tab" onclick="showTab('cashflow',this)">Cash Flow</div>
+    <div class="tab" onclick="showTab('tax',this)">Tax Analysis</div>
+    <div class="tab" onclick="showTab('projection',this)">5-Year Projection</div>
+    <div class="tab" onclick="showTab('wealth',this)">Wealth Building</div>
+  </div>
+
+  <div id="pane-summary" class="tab-pane active">
+    <div id="s-cards" class="cards"></div>
+    <div id="s-alert"></div>
+    <div class="g2">
+      <div>
+        <div class="ptitle">Acquisition & Financing</div>
+        <table id="t-acq" class="tbl"><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <div class="ptitle">Annual Income & Expenses</div>
+        <table id="t-ann" class="tbl"><thead><tr><th>Item</th><th>Annual</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div id="pane-cashflow" class="tab-pane">
+    <div class="ptitle">STR Cash Flow Analysis</div>
+    <div class="g2">
+      <div>
+        <div class="col-lbl">Year 1 — With Bonus Depreciation</div>
+        <table id="t-cf1" class="tbl"><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <div class="col-lbl" style="background:#f1f5f9;color:var(--muted)">Year 2+ — Steady State</div>
+        <table id="t-cf2" class="tbl"><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div id="cf-note" class="alert info"></div>
+    <div id="ltr-cf-panel"></div>
+  </div>
+
+  <div id="pane-tax" class="tab-pane">
+    <div class="ptitle">Tax Strategy Analysis</div>
+    <div id="t-cmp-wrap" style="margin-bottom:16px"></div>
+    <div id="t-strats"></div>
+    <div class="divider"></div>
+    <div class="g2">
+      <div>
+        <div class="col-lbl">Year 1 Tax Calculation</div>
+        <table id="t-tax1" class="tbl"><thead><tr><th>Line Item</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <div class="col-lbl" style="background:#f1f5f9;color:var(--muted)">Year 2+ Tax Calculation</div>
+        <table id="t-tax2" class="tbl"><thead><tr><th>Line Item</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div id="pane-projection" class="tab-pane">
+    <div class="ptitle">5-Year Financial Projection</div>
+    <div id="proj-note" class="alert info"></div>
+    <table id="t-proj" class="ptbl"></table>
+    <p style="margin-top:12px;font-size:11px;color:var(--muted)">Assumes 3%/yr STR revenue growth, 2%/yr expense growth. LTR held constant. Property appreciation excluded. Depreciation recapture at sale (25% on §1250 gains) not modeled.</p>
+  </div>
+
+  <div id="pane-wealth" class="tab-pane">
+    <div class="wb-config">
+      <div class="wb-cfg-item"><label>Appreciation %/yr</label><input id="wbApp" type="number" value="4" step="0.5" min="0" oninput="calc()"></div>
+      <div class="wb-cfg-item"><label>Stock Return %/yr</label><input id="wbStock" type="number" value="9" step="0.5" min="0" oninput="calc()"></div>
+      <div class="wb-cfg-item"><label>Tax Savings Reinvest %/yr</label><input id="wbReinv" type="number" value="7" step="0.5" min="0" oninput="calc()"></div>
+      <div class="wb-cfg-item"><label>1031 Exchange at Year #</label><input id="wb1031" type="number" value="10" step="1" min="1" oninput="calc()"></div>
+      <div class="wb-cfg-item"><label>Model Years</label><input id="wbYears" type="number" value="30" step="5" min="5" max="50" oninput="calc()"></div>
+    </div>
+    <div id="wealth-content"></div>
+  </div>
+
+</div>
+</div><!-- /layout -->
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const v = id => parseFloat($(id).value) || 0;
+const ck = id => $(id).checked;
+const sl = id => $(id).value;
+
+function fm(n, d=0) {
+  if (n == null) return '—';
+  const abs = Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  return (n < 0 ? '-' : '') + '$' + abs;
+}
+function cc(n) { return n >= 0 ? 'c-pos' : 'c-neg'; }
+function cardCls(n) { return n >= 0 ? 'pos' : 'neg'; }
+
+// ── Tooltip click handler ─────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  const icon = e.target.closest('.tip-icon');
+  if (icon) {
+    e.stopPropagation();
+    const wrap = icon.closest('.tip-wrap');
+    const wasOpen = wrap.classList.contains('open');
+    document.querySelectorAll('.tip-wrap.open').forEach(w => w.classList.remove('open'));
+    if (!wasOpen) wrap.classList.add('open');
+  } else {
+    document.querySelectorAll('.tip-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+
+function tog(hd) {
+  const bd = hd.nextElementSibling;
+  const arr = hd.querySelector('span');
+  bd.classList.toggle('closed');
+  arr.textContent = bd.classList.contains('closed') ? '▸' : '▾';
+}
+function showTab(name, el) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  $('pane-' + name).classList.add('active');
+  el.classList.add('active');
+}
+function toggleCostSeg() {
+  $('costSegFields').style.display = sl('costSeg') === 'yes' ? 'block' : 'none';
+  calc();
+}
+function toggleLTR() {
+  $('ltrFields').style.display = sl('inclLTR') === 'yes' ? 'flex' : 'none';
+  if ($('ltrFields').style.display === 'flex') $('ltrFields').style.flexDirection = 'column';
+  $('ltrFields').style.gap = '8px';
+  calc();
+}
+
+// ── 2025 Federal Tax Brackets ─────────────────────────────────────────────
+const BRACKETS = {
+  mfj:    [[23850,.10],[96950,.12],[206700,.22],[394600,.24],[501050,.32],[751600,.35],[1e9,.37]],
+  single: [[11925,.10],[48475,.12],[103350,.22],[197300,.24],[250525,.32],[626350,.35],[1e9,.37]],
+};
+const STD_DED = { mfj: 30000, single: 15000 };
+
+function fedTax(taxable, status) {
+  if (taxable <= 0) return 0;
+  const bk = BRACKETS[status] || BRACKETS.mfj;
+  let tax = 0, prev = 0;
+  for (const [top, rate] of bk) {
+    if (taxable <= prev) break;
+    tax += (Math.min(taxable, top) - prev) * rate;
+    prev = top;
+  }
+  return tax;
+}
+
+// ── Mortgage ──────────────────────────────────────────────────────────────
+function monthlyPmt(p, ratePct, yrs) {
+  if (ratePct === 0) return p / (yrs * 12);
+  const r = ratePct / 100 / 12, n = yrs * 12;
+  return p * (r * Math.pow(1+r,n)) / (Math.pow(1+r,n) - 1);
+}
+function yearInterest(p, ratePct, yrs, year) {
+  const r = ratePct / 100 / 12;
+  const pmt = monthlyPmt(p, ratePct, yrs);
+  const mStart = (year - 1) * 12;
+  let bal = p * Math.pow(1+r, mStart) - pmt * (Math.pow(1+r, mStart) - 1) / r;
+  let interest = 0;
+  for (let m = 0; m < 12; m++) {
+    const i = bal * r;
+    interest += i;
+    bal -= (pmt - i);
+  }
+  return interest;
+}
+
+// ── Core Calculation ──────────────────────────────────────────────────────
+function calculateResults() {
+  const pp       = v('purchasePrice');
+  const landPct  = v('landPct') / 100;
+  const closPct  = v('closingCostPct') / 100;
+  const downPct  = v('downPct') / 100;
+  const ratePct  = v('rate');
+  const termYrs  = v('term');
+  const nightRate= v('nightlyRate');
+  const occ      = v('occ') / 100;
+  const avgStay  = v('avgStay');
+  const cleanIn  = v('cleanFeeIn');
+  const platFee  = v('platformFee') / 100;
+  const propTax  = v('propTax');
+  const insur    = v('insurance');
+  const hoa      = v('hoa') * 12;
+  const utils    = v('utilities') * 12;
+  const pool     = v('pool') * 12;
+  const lawn     = v('lawn') * 12;
+  const cleanOut = v('cleanCostPer');
+  const mgmtPct  = v('mgmt') / 100;
+  const maintPct = v('maint') / 100;
+  const suppl    = v('supplies') * 12;
+  const other    = v('other');
+  const w2       = v('w2');
+  const filing   = sl('filing');
+  const stateR   = v('stateRate') / 100;
+  const bonusPct = v('bonusDep') / 100;
+  const csOn     = sl('costSeg') === 'yes';
+  const pct5     = csOn ? v('pct5') / 100 : 0;
+  const pct15    = csOn ? v('pct15') / 100 : 0;
+  const csf      = csOn ? v('costSegFee') : 0;
+  const useSTR   = ck('strLoop');
+  const useREPS  = ck('reps');
+  const useQBI   = ck('qbi');
+  const inclLTR  = sl('inclLTR') === 'yes';
+  const ltrRentAnn = inclLTR ? v('ltrRent') * 12 : 0;
+  const ltrExps    = inclLTR ? v('ltrExps') : 0;
+  const ltrBasis   = inclLTR ? v('ltrBasis') : 0;
+  const ltrDep     = ltrBasis / 27.5;
+  const ltrTaxInc  = inclLTR ? (ltrRentAnn - ltrExps - ltrDep) : 0;
+
+  // ─ Acquisition
+  const down     = pp * downPct;
+  const loan     = pp - down;
+  const closing  = pp * closPct;
+  const totCash  = down + closing + csf;
+
+  // ─ Mortgage
+  const mpmt   = monthlyPmt(loan, ratePct, termYrs);
+  const annPmt = mpmt * 12;
+  const int1   = yearInterest(loan, ratePct, termYrs, 1);
+  const int2   = yearInterest(loan, ratePct, termYrs, 2);
+  const prin1  = annPmt - int1;
+
+  // ─ STR Revenue
+  const annNights = 365 * occ;
+  const annStays  = annNights / Math.max(avgStay, 0.5);
+  const nightRev  = annNights * nightRate;
+  const cleanRev  = annStays * cleanIn;
+  const grossRev  = nightRev + cleanRev;
+  const platAmt   = grossRev * platFee;
+  const netRev    = grossRev - platAmt;
+
+  // ─ STR Opex
+  const cleanCosts = annStays * cleanOut;
+  const mgmtAmt    = netRev * mgmtPct;
+  const maintAmt   = pp * maintPct;
+  const totalOpex  = propTax + insur + hoa + utils + pool + lawn +
+                     cleanCosts + mgmtAmt + maintAmt + suppl + other;
+  const noi        = netRev - totalOpex;
+  const cfPreTax   = noi - annPmt;
+
+  // ─ STR Depreciation
+  const bldgBasis = pp * (1 - landPct);
+  const basis5    = bldgBasis * pct5;
+  const basis15   = bldgBasis * pct15;
+  const basis27   = bldgBasis * (1 - pct5 - pct15);
+  let dep1, dep2, bonusAmt, reg1, reg2;
+  if (csOn) {
+    bonusAmt = (basis5 + basis15) * bonusPct;
+    const rem5 = basis5 * (1 - bonusPct), rem15 = basis15 * (1 - bonusPct);
+    reg1 = rem5*(1/5*.5) + rem15*(1/15*.5) + basis27*(1/27.5*.5);
+    dep1 = bonusAmt + reg1;
+    reg2 = rem5/5 + rem15/15 + basis27/27.5;
+    dep2 = reg2;
+  } else {
+    bonusAmt = 0;
+    dep1 = bldgBasis / 27.5 * .5;
+    dep2 = bldgBasis / 27.5;
+    reg1 = dep1; reg2 = dep2;
+  }
+  const dep1Total = dep1 + csf;
+
+  // ─ STR Taxable Income
+  const taxInc1 = netRev - totalOpex - int1 - dep1Total;
+  const taxInc2 = netRev - totalOpex - int2 - dep2;
+
+  // ─ Strategy flags
+  const strQual   = avgStay <= 7;
+  const strActive = useSTR && strQual;
+  const canOffSTR = strActive || useREPS; // STR loss can offset W-2
+  const canOffLTR = useREPS;             // LTR loss ONLY offset via REPS (not STR loophole)
+
+  const stdDed    = STD_DED[filing] || 30000;
+
+  // ─ Baseline: current state WITHOUT the new STR (W-2 + LTR passive rules)
+  // At $400K+ AGI the $25K passive loss allowance phases out completely above $150K.
+  // So trapped LTR losses have $0 benefit. LTR income is fully taxable.
+  const ltrBaseInc = inclLTR ? Math.max(0, ltrTaxInc) : 0;
+  const baseAGI    = w2 + ltrBaseInc;
+  const baseTxbl   = Math.max(0, baseAGI - stdDed);
+  const baseFed    = fedTax(baseTxbl, filing);
+  const baseSt     = baseAGI * stateR;
+  const baseTax    = baseFed + baseSt;
+  const ltrTrapped = inclLTR && ltrTaxInc < 0 ? -ltrTaxInc : 0;
+
+  // ─ Tax WITH new STR (and applying elected strategies to both properties)
+  function withTax(strTI) {
+    let adj = w2;
+
+    // STR loss/income
+    if (strTI < 0) {
+      if (canOffSTR) adj += strTI;
+      // else trapped — no benefit at $400K+
+    } else {
+      adj += strTI;
+    }
+
+    // LTR loss/income — only REPS makes LTR losses active
+    if (inclLTR) {
+      if (ltrTaxInc < 0) {
+        if (canOffLTR) adj += ltrTaxInc;
+        // else trapped
+      } else {
+        adj += ltrTaxInc; // LTR income always taxable
+      }
+    }
+
+    // QBI: 20% of positive rental income; at high incomes limited to 2.5% of combined basis
+    let qbiDed = 0;
+    const posREInc = Math.max(0, strTI) + (inclLTR ? Math.max(0, ltrTaxInc) : 0);
+    if (useQBI && posREInc > 0) {
+      const raw = posREInc * 0.20;
+      const basisLim = (bldgBasis + ltrBasis) * 0.025;
+      qbiDed = Math.min(raw, basisLim);
+      adj -= qbiDed;
+    }
+
+    const txbl  = Math.max(0, adj - stdDed);
+    const fed   = fedTax(txbl, filing);
+    const st    = Math.max(0, adj) * stateR;
+    const total = fed + st;
+    const savings = baseTax - total;
+
+    const strLossUsed = strTI < 0 && canOffSTR ? -strTI : 0;
+    const ltrLossUsed = inclLTR && ltrTaxInc < 0 && canOffLTR ? -ltrTaxInc : 0;
+    const strCarry    = strTI < 0 && !canOffSTR ? -strTI : 0;
+    const ltrCarry    = inclLTR && ltrTaxInc < 0 && !canOffLTR ? -ltrTaxInc : 0;
+
+    return { adj, txbl, fed, st, total, savings, strLossUsed, ltrLossUsed, strCarry, ltrCarry, qbiDed };
+  }
+
+  const t1 = withTax(taxInc1);
+  const t2 = withTax(taxInc2);
+
+  const atcf1  = cfPreTax + t1.savings;
+  const atcf2  = cfPreTax + t2.savings;
+  const coc1   = totCash > 0 ? atcf1 / totCash : 0;
+
+  // ─ 5-Year Projection
+  const years = [];
+  for (let y = 1; y <= 5; y++) {
+    const g = Math.pow(1.03, y-1);
+    const e = Math.pow(1.02, y-1);
+    const yRev    = netRev * g;
+    const yOpex   = totalOpex * e;
+    const yInt    = yearInterest(loan, ratePct, termYrs, y);
+    const yDep    = y === 1 ? dep1Total : dep2;
+    const yNOI    = yRev - yOpex;
+    const yCF     = yNOI - annPmt;
+    const yTaxInc = yRev - yOpex - yInt - yDep;
+    const yt      = withTax(yTaxInc);
+    years.push({ y, rev:yRev, opex:yOpex, noi:yNOI, cf:yCF, dep:yDep, int:yInt, taxInc:yTaxInc, ...yt, atcf:yCF+yt.savings });
+  }
+
+  return {
+    pp, loan, down, closing, csf, totCash,
+    mpmt, annPmt, int1, int2, prin1,
+    annNights, annStays, nightRev, cleanRev, grossRev, platAmt, netRev,
+    propTax, insur, hoa, utils, pool, lawn, cleanCosts, mgmtAmt, maintAmt, suppl, other, totalOpex,
+    noi, cfPreTax,
+    bldgBasis, basis5, basis15, basis27, bonusAmt, dep1, dep2, dep1Total, reg1, reg2, csOn,
+    taxInc1, taxInc2,
+    inclLTR, ltrRentAnn, ltrExps, ltrBasis, ltrDep, ltrTaxInc, ltrTrapped,
+    baseTax, baseFed, baseSt, baseAGI, stdDed,
+    t1, t2, atcf1, atcf2, coc1,
+    strQual, strActive, canOffSTR, canOffLTR,
+    useSTR, useREPS, useQBI,
+    filing, w2, stateR, avgStay, bonusPct,
+    years, ratePct, termYrs,
+  };
+}
+
+// ── Table builder ─────────────────────────────────────────────────────────
+function buildTbody(rows) {
+  let html = '';
+  for (const row of rows) {
+    if (!row) { html += `<tr class="sep"><td colspan="2"></td></tr>`; continue; }
+    if (row[0] === 'GRP') { html += `<tr class="grp"><td colspan="2">${row[1]}</td></tr>`; continue; }
+    const [lbl, val, bold, cls] = row;
+    html += `<tr${bold?' class="tot"':''}><td>${lbl}</td><td${cls?' class="'+cls+'"':''}>${val}</td></tr>`;
+  }
+  return html;
+}
+function setTbody(id, rows) { document.querySelector('#'+id+' tbody').innerHTML = buildTbody(rows); }
+
+// ── Render Summary ────────────────────────────────────────────────────────
+function renderSummary(r) {
+  $('s-cards').innerHTML = `
+    <div class="card ${cardCls(r.cfPreTax)}">
+      <div class="lbl">Pre-Tax Cash Flow</div>
+      <div class="val ${cc(r.cfPreTax)}">${fm(r.cfPreTax)}</div>
+      <div class="sub">${fm(r.cfPreTax/12)}/mo after mortgage</div>
+    </div>
+    <div class="card hi">
+      <div class="lbl">Total Tax Savings — Yr 1</div>
+      <div class="val c-pos">${fm(r.t1.savings)}</div>
+      <div class="sub">vs. current state (no STR)</div>
+    </div>
+    <div class="card ${cardCls(r.atcf1)}">
+      <div class="lbl">After-Tax Cash Flow Y1</div>
+      <div class="val ${cc(r.atcf1)}">${fm(r.atcf1)}</div>
+      <div class="sub">cash flow + tax savings</div>
+    </div>
+    <div class="card neu">
+      <div class="lbl">Total Cash to Close</div>
+      <div class="val c-neu">${fm(r.totCash)}</div>
+      <div class="sub">down + closing + cost seg</div>
+    </div>
+    <div class="card ${r.coc1 >= 0.08 ? 'hi' : cardCls(r.coc1)}">
+      <div class="lbl">Cash-on-Cash Return Y1</div>
+      <div class="val ${cc(r.coc1)}">${(r.coc1*100).toFixed(1)}%</div>
+      <div class="sub">after-tax (incl. tax savings)</div>
+    </div>
+    <div class="card ${r.taxInc1 < 0 ? 'hi' : 'neg'}">
+      <div class="lbl">STR Paper Income Yr 1</div>
+      <div class="val ${cc(r.taxInc1)}">${fm(r.taxInc1)}</div>
+      <div class="sub">taxable income from STR</div>
+    </div>
+  `;
+
+  let alert = '';
+  if (r.useSTR && !r.strQual)
+    alert = `<div class="alert warn">⚠️ <strong>STR Loophole Ineligible:</strong> Avg stay is ${r.avgStay} days. Requires ≤7 days. Rely on REPS to deduct STR losses against W-2 income, or reduce average stay length.</div>`;
+  else if (r.strActive)
+    alert = `<div class="alert good">✓ <strong>STR Loophole Active:</strong> Avg stay ${r.avgStay} days (≤7) — STR paper loss of ${fm(-r.taxInc1)} directly offsets your ${fm(r.w2)} W-2 income, saving ${fm(r.t1.savings)} in total taxes.</div>`;
+  $('s-alert').innerHTML = alert;
+
+  setTbody('t-acq', [
+    ['Purchase Price',        fm(r.pp)],
+    ['Down Payment',          fm(r.down)],
+    ['Loan Amount',           fm(r.loan)],
+    ['Closing Costs',         fm(r.closing)],
+    r.csf > 0 ? ['Cost Seg Study Fee',  fm(r.csf)] : null,
+    ['Total Cash to Close',   fm(r.totCash), true],
+    null,
+    ['Monthly Payment (P+I)', fm(r.mpmt)],
+    ['Annual Mortgage',       fm(r.annPmt)],
+    ['Yr 1 Interest (deduct)',fm(r.int1)],
+    ['Yr 1 Principal',        fm(r.prin1)],
+  ]);
+
+  const ltrRows = r.inclLTR ? [
+    null,
+    ['GRP', 'Existing LTR — Duplex Rental'],
+    ['LTR Gross Rent',        fm(r.ltrRentAnn), false, 'c-pos'],
+    ['LTR Expenses',          fm(-r.ltrExps)],
+    ['LTR Depreciation',      fm(-r.ltrDep)],
+    ['LTR Taxable Income',    fm(r.ltrTaxInc), false, cc(r.ltrTaxInc)],
+  ] : [];
+
+  setTbody('t-ann', [
+    ['GRP', 'New STR — Airbnb Property'],
+    ['Gross Nightly Revenue', fm(r.nightRev), false, 'c-pos'],
+    ['Cleaning Fee Revenue',  fm(r.cleanRev), false, 'c-pos'],
+    ['Platform Fees',         fm(-r.platAmt)],
+    ['Net STR Revenue',       fm(r.netRev), true],
+    ['STR Operating Expenses',fm(-r.totalOpex)],
+    ['Net Operating Income',  fm(r.noi), false, cc(r.noi)],
+    ['Annual Mortgage',       fm(-r.annPmt)],
+    ['STR Pre-Tax Cash Flow', fm(r.cfPreTax), true, cc(r.cfPreTax)],
+    ...ltrRows,
+  ]);
+}
+
+// ── Render Cash Flow ──────────────────────────────────────────────────────
+function renderCashFlow(r) {
+  const cfRows = (taxInc, dep, intAmt, taxSav, atcf) => [
+    ['Net STR Revenue',            fm(r.netRev), false, 'c-pos'],
+    ['Operating Expenses',         fm(-r.totalOpex)],
+    ['Net Operating Income',       fm(r.noi), false, cc(r.noi)],
+    ['Mortgage Payment',           fm(-r.annPmt)],
+    ['Pre-Tax Cash Flow',          fm(r.cfPreTax), true, cc(r.cfPreTax)],
+    null,
+    ['GRP', 'Paper (Non-Cash) — Schedule E'],
+    ['Depreciation',               fm(-dep)],
+    ['Mortgage Interest (deduct)', fm(-intAmt)],
+    ['STR Taxable Income / (Loss)',fm(taxInc), false, cc(taxInc)],
+    null,
+    ['GRP', 'After-Tax Picture'],
+    ['Tax Savings (incl. LTR)',    fm(taxSav), false, 'c-pos'],
+    ['After-Tax Cash Flow',        fm(atcf), true, cc(atcf)],
+  ];
+  setTbody('t-cf1', cfRows(r.taxInc1, r.dep1Total, r.int1, r.t1.savings, r.atcf1));
+  setTbody('t-cf2', cfRows(r.taxInc2, r.dep2,      r.int2, r.t2.savings, r.atcf2));
+
+  $('cf-note').innerHTML = `<strong>The Insight:</strong> Pre-tax cash flow is <strong>${fm(r.cfPreTax)}/yr</strong>.
+  The paper loss from depreciation (${fm(-r.dep1Total)} in Year 1) + deductible interest (${fm(-r.int1)})
+  creates a <strong>${fm(r.taxInc1)}</strong> loss on paper.
+  With your strategy, that saves <strong>${fm(r.t1.savings)}</strong> in real taxes —
+  bringing true Year 1 return to <strong class="${cc(r.atcf1)}">${fm(r.atcf1)}</strong>
+  on <strong>${fm(r.totCash)}</strong> invested.`;
+
+  if (r.inclLTR) {
+    const ltrStatus = r.ltrTaxInc >= 0
+      ? `profitable (${fm(r.ltrTaxInc)} taxable income). No additional loss to unlock.`
+      : r.canOffLTR
+        ? `paper loss of ${fm(-r.ltrTaxInc)} — <strong>unlocked by REPS</strong> → saves additional ${fm(r.t1.ltrLossUsed * (r.stateR + 0.24))} in taxes.`
+        : `paper loss of ${fm(-r.ltrTaxInc)} — <strong>currently trapped</strong> (passive at your income level). Check REPS to unlock.`;
+    $('ltr-cf-panel').innerHTML = `<div class="alert ${r.ltrTaxInc < 0 && r.canOffLTR ? 'good' : r.ltrTaxInc < 0 ? 'warn' : 'info'}">
+      <strong>Your LTR Duplex:</strong> ${fm(r.ltrRentAnn)}/yr gross rent − ${fm(r.ltrExps)} expenses − ${fm(r.ltrDep)} depreciation = ${ltrStatus}
+    </div>`;
+  } else {
+    $('ltr-cf-panel').innerHTML = '';
+  }
+}
+
+// ── Render Tax ────────────────────────────────────────────────────────────
+function renderTax(r) {
+
+  // ─ Scenario comparison table
+  const noSTRAGI   = r.baseAGI; // current state: W-2 + LTR passive
+  const noSTRTxbl  = Math.max(0, noSTRAGI - r.stdDed);
+  const noSTRFed   = fedTax(noSTRTxbl, r.filing);
+  const noSTRSt    = noSTRAGI * r.stateR;
+  const noSTRTax   = noSTRFed + noSTRSt;
+
+  $('t-cmp-wrap').innerHTML = `
+    <div class="ptitle" style="margin-bottom:8px">Scenario Comparison — Combined Tax Picture</div>
+    <table class="cmp-tbl">
+      <thead><tr><th>Scenario</th><th>AGI</th><th>Federal Tax</th><th>State Tax</th><th>Total Tax</th></tr></thead>
+      <tbody>
+        <tr><td>W-2 alone (no rentals)</td>
+          <td>${fm(r.w2)}</td>
+          <td>${fm(-fedTax(Math.max(0,r.w2-r.stdDed), r.filing))}</td>
+          <td>${fm(-r.w2*r.stateR)}</td>
+          <td>${fm(-(fedTax(Math.max(0,r.w2-r.stdDed), r.filing) + r.w2*r.stateR))}</td></tr>
+        <tr><td>Current state (W-2 + LTR, no new STR)</td>
+          <td>${fm(noSTRAGI)}</td>
+          <td>${fm(-noSTRFed)}</td>
+          <td>${fm(-noSTRSt)}</td>
+          <td>${fm(-noSTRTax)}</td></tr>
+        <tr><td>With new STR + strategies (Year 1)</td>
+          <td>${fm(r.t1.adj)}</td>
+          <td>${fm(-r.t1.fed)}</td>
+          <td>${fm(-r.t1.st)}</td>
+          <td>${fm(-r.t1.total)}</td></tr>
+        <tr class="hi"><td>Tax Savings vs. Current State</td>
+          <td></td><td></td><td></td>
+          <td>${fm(r.t1.savings)}</td></tr>
+      </tbody>
+    </table>`;
+
+  // ─ Strategy boxes
+  const strStatus = !r.useSTR ? 'off' : (r.strQual ? 'on' : 'warn');
+  const strBadge  = r.strActive ? '<span class="badge g">ACTIVE</span>'
+    : r.useSTR && !r.strQual ? '<span class="badge a">INELIGIBLE — avg stay > 7 days</span>'
+    : '<span class="badge gr">NOT SELECTED</span>';
+
+  const repsHrsLTR = r.inclLTR ? 150 : 0;
+  const repsHrsSTR = 550;
+  const repsTotalEst = repsHrsSTR + repsHrsLTR;
+
+  $('t-strats').innerHTML = `
+  <div class="strat ${strStatus}">
+    <div class="strat-hd">STR Loophole (IRC §469) ${strBadge}</div>
+    <div class="strat-bd">
+      <strong>What it does:</strong> STRs with average guest stay ≤7 days are classified as a trade/business, not rental activity. Losses are <em>non-passive</em> and offset W-2 income directly — <em>without</em> needing REPS.<br><br>
+      <strong>Requirements:</strong> (1) Average stay ≤7 days. (2) Material participation — typically 500+ hrs/yr in the activity, or substantially all participation is yours. Cynthia managing full-time easily satisfies this.<br><br>
+      <strong>Critical limitation:</strong> The STR Loophole only applies to <em>this STR</em>. It does NOT make your duplex LTR losses active. For that you need REPS.<br><br>
+      <strong>Current status:</strong> Avg stay = <strong>${r.avgStay} days</strong> — ${r.strQual ? '✓ qualifies' : '✗ does NOT qualify (must be ≤7 days)'}.<br><br>
+      <strong>Year 1 STR loss offset:</strong> ${fm(-r.taxInc1)} paper loss saves <strong>${fm(r.t1.strLossUsed && r.strActive ? r.t1.savings - (r.inclLTR && r.canOffLTR && r.ltrTaxInc < 0 ? (-r.ltrTaxInc) * (r.stateR + 0.24) : 0) : 0)}</strong> (estimate).
+    </div>
+  </div>
+
+  <div class="strat ${r.useREPS ? 'on' : 'off'}">
+    <div class="strat-hd">Real Estate Professional Status (REPS) ${r.useREPS ? '<span class="badge g">ACTIVE</span>' : '<span class="badge gr">NOT SELECTED</span>'}</div>
+    <div class="strat-bd">
+      <strong>What it does:</strong> If Cynthia qualifies as a Real Estate Professional, ALL rental losses on your joint return become non-passive — both the new STR <em>and</em> the duplex LTR. Same loss-offset effect as the STR Loophole, but broader coverage.<br><br>
+
+      <strong>Requirements (both must be met):</strong><br>
+      &nbsp;1. <strong>750+ hours/year</strong> in real property trades or businesses — counted across <em>all</em> properties combined<br>
+      &nbsp;2. Real estate must be <strong>more than 50% of her total personal service hours</strong> for the year<br>
+      &nbsp;3. Must materially participate in each rental property<br><br>
+
+      <strong>Your 750-hour picture:</strong><br>
+      &nbsp;• New STR (Airbnb): ~${repsHrsSTR} hrs/yr — guest communication, check-ins, cleaning oversight, maintenance calls, bookkeeping, listing management, market research<br>
+      ${r.inclLTR ? `&nbsp;• Duplex LTR: ~${repsHrsLTR} hrs/yr — tenant relations, maintenance, rent collection, repairs<br>` : ''}
+      &nbsp;• Estimated total: <strong>~${repsTotalEst} hrs/yr</strong> → ${repsTotalEst >= 750 ? '✓ Meets the 750-hour threshold' : '⚠️ May fall short — add more activities or a second property'}<br><br>
+
+      <strong>50% test:</strong> If managing real estate is Cynthia's only occupation, 100% of her personal services are in real estate → automatically satisfied.<br><br>
+
+      <strong>Grouping Election (Reg. §1.469-9(g)):</strong> Cynthia can elect to treat ALL rental properties as a single activity for material participation purposes. This means hours at the STR and the duplex count together toward one 500-hour test instead of needing 500+ hours per property. This election is binding going forward — but it's almost always beneficial as the portfolio grows.<br><br>
+
+      <strong>Key benefit for your duplex:</strong> At ${fm(r.w2)} AGI, LTR passive losses are <strong>100% trapped</strong> — the $25K passive allowance phases out completely above $150K AGI. REPS converts those trapped losses into active deductions.<br>
+      ${r.inclLTR ? (r.ltrTaxInc < 0
+        ? `Current LTR paper loss: <strong>${fm(-r.ltrTaxInc)}/yr</strong> — ${r.canOffLTR ? `✓ REPS active → saves ~${fm(-r.ltrTaxInc * (0.24 + r.stateR))} in additional taxes` : '⚠️ Enable REPS to unlock this'}`
+        : `Current LTR is profitable (${fm(r.ltrTaxInc)} taxable income) — REPS doesn't reduce LTR taxes but remains valuable if expenses increase or you add more LTR properties.`
+      ) : ''}
+    </div>
+  </div>
+
+  <div class="strat on">
+    <div class="strat-hd">Bonus Depreciation + Cost Segregation <span class="badge g">${(r.bonusPct*100).toFixed(0)}% Bonus Dep</span></div>
+    <div class="strat-bd">
+      <strong>What it does:</strong> A cost segregation study reclassifies building components into shorter-lived property. Bonus depreciation front-loads those components into Year 1 instead of spreading over 27.5 years.<br><br>
+      <strong>Component breakdown:</strong><br>
+      &nbsp;• <strong>5-year property</strong> (${(v('pct5')||20)}%): appliances, furniture, carpeting, fixtures → ${fm(r.basis5)} basis<br>
+      &nbsp;• <strong>15-year property</strong> (${(v('pct15')||10)}%): pool, landscaping, driveways, outdoor lighting → ${fm(r.basis15)} basis<br>
+      &nbsp;• <strong>27.5-year property</strong> (${(100-(v('pct5')||20)-(v('pct15')||10))}%): structural building → ${fm(r.basis27)} basis<br><br>
+      <strong>Year 1 depreciation:</strong><br>
+      ${r.csOn ? `&nbsp;• Bonus dep (${(r.bonusPct*100).toFixed(0)}% × 5-yr+15-yr): <strong>${fm(r.bonusAmt)}</strong><br>
+      &nbsp;• Regular dep (half-year convention): <strong>${fm(r.reg1)}</strong><br>` :
+      `&nbsp;• Standard 27.5yr (half-year yr 1): <strong>${fm(r.dep1)}</strong><br>`}
+      &nbsp;• Cost seg fee (deductible): <strong>${fm(r.csf)}</strong><br>
+      &nbsp;• <strong>Total Year 1 = ${fm(r.dep1Total)}</strong> vs. Year 2+ = ${fm(r.dep2)}/yr<br><br>
+      <strong>2025 rate:</strong> 40% under TCJA. Change "Bonus Depreciation %" to 100 to model restored legislation.<br><br>
+      <strong>⚠️ Recapture at sale:</strong> Accelerated depreciation is recaptured at 25% (unrecaptured §1250). A 1031 exchange defers it.
+    </div>
+  </div>
+
+  <div class="strat ${r.useQBI ? (r.taxInc1 < 0 ? 'warn' : 'on') : 'off'}">
+    <div class="strat-hd">QBI Deduction §199A ${r.useQBI ? '<span class="badge g">SELECTED</span>' : '<span class="badge gr">NOT SELECTED</span>'}</div>
+    <div class="strat-bd">
+      <strong>What it does:</strong> 20% deduction on net qualified business income from a rental trade or business. Only applies in profitable years — reduces ordinary income below your rental net income.<br><br>
+      <strong>Safe harbor:</strong> 250+ hours of rental services/yr qualifies as a trade or business.<br><br>
+      <strong>High-income limitation:</strong> At ${fm(r.w2)}, you're above the MFJ threshold (~$384K). The deduction is limited to the greater of: (a) 50% of W-2 wages, or (b) 25% of W-2 wages + 2.5% of qualified property basis. With no employee wages, option (b) = <strong>2.5% × ${fm(r.bldgBasis+r.ltrBasis)} combined basis = ${fm((r.bldgBasis+r.ltrBasis)*0.025)}/yr cap</strong>.<br><br>
+      <strong>Year 1 reality:</strong> Both properties likely show losses → QBI = $0 this year. The deduction kicks in once depreciation normalizes and the properties turn profitable on paper (typically Years 3–6+).
+    </div>
+  </div>`;
+
+  // ─ Tax calculation tables
+  const taxRows = (t, strTI) => [
+    ['W-2 Gross Income',           fm(r.w2)],
+    ...(r.inclLTR ? [['LTR Income / (Loss)',    fm(r.ltrTaxInc), false, cc(r.ltrTaxInc)]] : []),
+    ['STR Income / (Loss)',        fm(strTI), false, cc(strTI)],
+    t.qbiDed > 0 ? ['QBI Deduction (§199A)',  fm(-t.qbiDed)] : null,
+    ['Adjusted Gross Income',      fm(t.adj), true],
+    ['Standard Deduction',         fm(-r.stdDed)],
+    ['Federal Taxable Income',     fm(t.txbl), true],
+    null,
+    ['Federal Income Tax',         fm(-t.fed)],
+    ['State Income Tax',           fm(-t.st)],
+    ['Total Tax',                  fm(-t.total), true],
+    null,
+    ['Current State Tax (no STR)', fm(-r.baseTax)],
+    ['Tax Savings',                fm(t.savings), true, 'c-pos'],
+    ...(t.strCarry > 0 ? [['STR Passive Loss Carry-Fwd', fm(t.strCarry)]] : []),
+    ...(t.ltrCarry > 0 ? [['LTR Passive Loss Carry-Fwd', fm(t.ltrCarry)]] : []),
+  ];
+  setTbody('t-tax1', taxRows(r.t1, r.taxInc1));
+  setTbody('t-tax2', taxRows(r.t2, r.taxInc2));
+}
+
+// ── Render Projection ─────────────────────────────────────────────────────
+function renderProjection(r) {
+  $('proj-note').innerHTML = `Year 1 captures full bonus depreciation benefit (${(r.bonusPct*100).toFixed(0)}%).
+  Tax savings compared to current state (W-2 + LTR, no new STR).
+  ${r.inclLTR ? `LTR held constant at ${fm(r.ltrTaxInc)}/yr taxable income across all years.` : ''}`;
+
+  const cols = ['Year 1','Year 2','Year 3','Year 4','Year 5'];
+  let html = `<thead><tr><th>Metric</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+
+  const rows = [
+    { lbl:'Net STR Revenue',       fn:y=>fm(y.rev) },
+    { lbl:'Operating Expenses',    fn:y=>fm(-y.opex) },
+    { lbl:'Net Operating Income',  fn:y=>`<span class="${cc(y.noi)}">${fm(y.noi)}</span>` },
+    { lbl:'Mortgage Payment',      fn:y=>fm(-r.annPmt) },
+    { lbl:'Pre-Tax Cash Flow',     fn:y=>`<span class="${cc(y.cf)}">${fm(y.cf)}</span>` },
+    { sep:true },
+    { lbl:'Depreciation (paper)',  fn:y=>fm(-y.dep) },
+    { lbl:'Mortgage Interest',     fn:y=>fm(-y.int) },
+    { lbl:'STR Taxable Inc/(Loss)',fn:y=>`<span class="${cc(y.taxInc)}">${fm(y.taxInc)}</span>` },
+    { sep:true },
+    { lbl:'Tax Savings (total)',   fn:y=>`<span class="c-pos">${fm(y.savings)}</span>` },
+    { lbl:'After-Tax Cash Flow',   fn:y=>`<span class="${cc(y.atcf)}">${fm(y.atcf)}</span>`, hi:true },
+  ];
+
+  for (const row of rows) {
+    if (row.sep) { html += `<tr><td colspan="6" style="padding:3px;border:none;background:#f8fafc"></td></tr>`; continue; }
+    html += `<tr${row.hi?' class="hi"':''}>`;
+    html += `<td>${row.lbl}</td>`;
+    for (const y of r.years) html += `<td>${row.fn(y)}</td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody>';
+  $('t-proj').innerHTML = html;
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────
+function calc() {
+  try {
+    const r = calculateResults();
+    renderSummary(r);
+    renderCashFlow(r);
+    renderTax(r);
+    renderProjection(r);
+    renderWealth(r);
+  } catch(e) {
+    console.error('Calculation error:', e);
+  }
+}
+
+calc();
+
+// ── Scenario Manager ──────────────────────────────────────────────────────
+const SCENARIO_KEY = 'str_scenarios_v1';
+
+// Collect every input/select/checkbox by ID
+function getAllInputs() {
+  const data = {};
+  document.querySelectorAll('input:not([type=file]):not([type=button]), select').forEach(el => {
+    if (!el.id) return;
+    data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  return data;
+}
+
+function setAllInputs(data) {
+  for (const [id, val] of Object.entries(data)) {
+    const el = $(id);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = val;
+    else el.value = val;
+  }
+  toggleCostSeg();
+  toggleLTR();
+  calc();
+}
+
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem(SCENARIO_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function updateScenarioList() {
+  const saved = getSaved();
+  const sel = $('scenarioList');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select to load —</option>';
+  Object.keys(saved).sort().forEach(name => {
+    sel.innerHTML += `<option value="${escHtml(name)}"${name===cur?' selected':''}>${escHtml(name)}</option>`;
+  });
+}
+
+function escHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function saveScenario() {
+  const name = $('scenarioName').value.trim();
+  if (!name) { $('scenarioName').focus(); $('scenarioName').style.borderColor='var(--red)'; return; }
+  $('scenarioName').style.borderColor = '';
+  const saved = getSaved();
+  saved[name] = getAllInputs();
+  localStorage.setItem(SCENARIO_KEY, JSON.stringify(saved));
+  updateScenarioList();
+  $('scenarioList').value = name;
+  const btn = $('saveBtn');
+  btn.textContent = '✓ Saved!';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => { btn.textContent = 'Save'; btn.style.background = ''; }, 1800);
+}
+
+function loadScenario() {
+  const name = $('scenarioList').value;
+  if (!name) return;
+  const saved = getSaved();
+  if (saved[name]) {
+    $('scenarioName').value = name;
+    setAllInputs(saved[name]);
+  }
+}
+
+function deleteScenario() {
+  const name = $('scenarioList').value;
+  if (!name) return;
+  if (!confirm(`Delete "${name}"?`)) return;
+  const saved = getSaved();
+  delete saved[name];
+  localStorage.setItem(SCENARIO_KEY, JSON.stringify(saved));
+  $('scenarioName').value = '';
+  updateScenarioList();
+}
+
+function exportScenario() {
+  const name = $('scenarioName').value.trim() || 'scenario';
+  const data = { name, inputs: getAllInputs(), saved: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `str_${name.replace(/[^a-z0-9]/gi, '_')}.json`;
+  a.click();
+}
+
+function importScenario(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.name) $('scenarioName').value = data.name;
+      if (data.inputs) setAllInputs(data.inputs);
+    } catch { alert('Could not read file — make sure it\'s a valid scenario JSON.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── Wealth Building ───────────────────────────────────────────────────────
+function loanBalance(principal, ratePct, termYrs, yearOfLoan) {
+  if (principal <= 0 || yearOfLoan <= 0) return Math.max(0, principal);
+  if (ratePct === 0) return Math.max(0, principal * (1 - yearOfLoan / termYrs));
+  const r = ratePct / 100 / 12, n = termYrs * 12;
+  const pmt = monthlyPmt(principal, ratePct, termYrs);
+  const months = Math.min(yearOfLoan * 12, n);
+  return Math.max(0, principal * Math.pow(1+r, months) - pmt * (Math.pow(1+r, months) - 1) / r);
+}
+
+function calculateWealth(r) {
+  const appRate   = (parseFloat($('wbApp').value)   || 4) / 100;
+  const stockRate = (parseFloat($('wbStock').value) || 9) / 100;
+  const reinvRate = (parseFloat($('wbReinv').value) || 7) / 100;
+  const exchYear  = Math.max(1, parseInt($('wb1031').value) || 10);
+  const modelYrs  = Math.max(5, Math.min(50, parseInt($('wbYears').value) || 30));
+  const landPct   = v('landPct') / 100;
+  const downPct   = v('downPct') / 100;
+
+  const stockHistory = [];
+  for (let y = 1; y <= modelYrs; y++) stockHistory.push(r.totCash * Math.pow(1 + stockRate, y));
+
+  const reHistory     = [];
+  let curPropVal      = r.pp;
+  let curLoan         = r.loan;
+  let loanTerm        = r.termYrs;
+  let propAge         = 0;
+  let loanAge         = 0;
+  let curBldgBasis    = r.bldgBasis;
+  let reinvSavings    = 0;
+  let cumTaxSav       = 0;
+  let totalDepClaimed = 0;
+  const costBasis     = r.pp + r.closing;
+  let exchangeDone    = false;
+
+  for (let y = 1; y <= modelYrs; y++) {
+    curPropVal *= (1 + appRate);
+    propAge++;
+    loanAge++;
+
+    let isExchange = false;
+    if (!exchangeDone && y === exchYear) {
+      const remLoan0 = loanBalance(curLoan, r.ratePct, loanTerm, loanAge);
+      const equity0  = Math.max(0, curPropVal - remLoan0);
+      if (equity0 > 0 && downPct > 0) {
+        const newPropVal = equity0 / downPct;
+        curBldgBasis = newPropVal * (1 - landPct);
+        curLoan      = newPropVal - equity0;
+        curPropVal   = newPropVal;
+        loanTerm     = r.termYrs;
+        propAge      = 1;
+        loanAge      = 1;
+        isExchange   = true;
+        exchangeDone = true;
+      }
+    }
+
+    const scale      = r.bldgBasis > 0 ? curBldgBasis / r.bldgBasis : 1;
+    const yearDep    = propAge === 1 ? r.dep1Total * scale : r.dep2 * scale;
+    const yearTaxSav = propAge === 1 ? r.t1.savings * scale : r.t2.savings * scale;
+    totalDepClaimed += yearDep;
+    cumTaxSav       += yearTaxSav;
+    reinvSavings     = reinvSavings * (1 + reinvRate) + yearTaxSav;
+
+    const remLoan = loanBalance(curLoan, r.ratePct, loanTerm, loanAge);
+    const equity  = Math.max(0, curPropVal - remLoan);
+    reHistory.push({ y, propVal:curPropVal, remLoan, equity, yearTaxSav, cumTaxSav, reinvSavings, totalREWealth:equity+reinvSavings, isExchange });
+  }
+
+  const cgAmt       = Math.max(0, curPropVal - costBasis);
+  const deferredTax = totalDepClaimed * 0.25 + cgAmt * 0.20 + (totalDepClaimed + cgAmt) * r.stateR;
+  return { reHistory, stockHistory, modelYrs, deferredTax, cumTaxSav, exchYear:exchangeDone?exchYear:null, finalPropVal:curPropVal };
+}
+
+function renderWealth(r) {
+  const wc = $('wealth-content');
+  if (!wc) return;
+  const w        = calculateWealth(r);
+  const last     = w.reHistory[w.modelYrs - 1];
+  const stockFin = w.stockHistory[w.modelYrs - 1];
+  const reLead   = last.totalREWealth - stockFin;
+  const heirsRE  = last.totalREWealth + w.deferredTax;
+  const heirsNewBasis = w.finalPropVal * (1 - v('landPct') / 100);
+
+  let html = `
+    <div class="ptitle">Real Estate vs. Index Funds — ${w.modelYrs}-Year Projection</div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(185px,1fr));margin-bottom:18px">
+      <div class="card hi">
+        <div class="lbl">RE Total Wealth — Yr ${w.modelYrs}</div>
+        <div class="val c-pos">${fm(last.totalREWealth)}</div>
+        <div class="sub">Equity + reinvested tax savings</div>
+      </div>
+      <div class="card neu">
+        <div class="lbl">Stock Portfolio — Yr ${w.modelYrs}</div>
+        <div class="val c-neu">${fm(stockFin)}</div>
+        <div class="sub">Same cash in index funds</div>
+      </div>
+      <div class="card ${reLead >= 0 ? 'hi' : 'neg'}">
+        <div class="lbl">RE Lead vs. Stocks</div>
+        <div class="val ${cc(reLead)}">${fm(reLead)}</div>
+        <div class="sub">Real estate advantage</div>
+      </div>
+      <div class="card pos">
+        <div class="lbl">Total Tax Savings (${w.modelYrs} yrs)</div>
+        <div class="val c-pos">${fm(w.cumTaxSav)}</div>
+        <div class="sub">Actual savings, not reinvested</div>
+      </div>
+      <div class="card neg">
+        <div class="lbl">Deferred Tax (if sold)</div>
+        <div class="val c-neg">${fm(w.deferredTax)}</div>
+        <div class="sub">Recapture + cap gains. Erased at death.</div>
+      </div>
+      <div class="card hi">
+        <div class="lbl">Heirs Receive (RE path)</div>
+        <div class="val c-pos">${fm(heirsRE)}</div>
+        <div class="sub">Equity + deferred tax never paid</div>
+      </div>
+    </div>
+    ${w.exchYear ? `<div class="alert info" style="margin-bottom:12px">↩ <strong>1031 Exchange modeled at Year ${w.exchYear}.</strong> Equity rolled into a larger property (same down % on new value). Depreciation and tax savings scale up with the new building basis. Deferred gain carries forward — no tax at exchange.</div>` : ''}
+    <div style="overflow-x:auto"><table class="ptbl">
+      <thead><tr>
+        <th style="text-align:left;min-width:110px">Year</th>
+        <th>Prop Value</th>
+        <th>Loan Balance</th>
+        <th>RE Equity</th>
+        <th>Tax Sav/yr</th>
+        <th>Reinv Savings</th>
+        <th>RE Total Wealth</th>
+        <th>Stock Value</th>
+        <th>RE Lead</th>
+      </tr></thead><tbody>`;
+
+  for (let i = 0; i < w.modelYrs; i++) {
+    const re    = w.reHistory[i];
+    const stock = w.stockHistory[i];
+    const lead  = re.totalREWealth - stock;
+    html += `<tr${re.isExchange ? ' class="exchange-row"' : ''}>
+      <td style="text-align:left;font-weight:600">${re.isExchange ? '↩ ' : ''}Yr ${re.y}${re.isExchange ? ' 1031' : ''}</td>
+      <td>${fm(re.propVal)}</td>
+      <td>${fm(re.remLoan)}</td>
+      <td class="${cc(re.equity)}">${fm(re.equity)}</td>
+      <td class="c-pos">${fm(re.yearTaxSav)}</td>
+      <td class="c-pos">${fm(re.reinvSavings)}</td>
+      <td class="${cc(re.totalREWealth)}" style="font-weight:700">${fm(re.totalREWealth)}</td>
+      <td class="c-neu">${fm(stock)}</td>
+      <td class="${cc(lead)}" style="font-weight:700">${fm(lead)}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div>
+    <div class="divider" style="margin-top:16px"></div>
+    <div class="ptitle" style="margin-top:8px">At Death: Generational Transfer (IRC §1014 Step-Up)</div>
+    <div class="g2">
+      <div class="strat on">
+        <div class="strat-hd">Real Estate Path <span class="badge g">STEP-UP</span></div>
+        <div class="strat-bd">
+          <strong>Property FMV at death:</strong> ${fm(w.finalPropVal)}<br>
+          <strong>Heirs' stepped-up basis:</strong> ${fm(w.finalPropVal)} <span class="c-pos">(full FMV)</span><br>
+          <strong>Deferred recapture &amp; cap gains:</strong> <span class="c-pos">$0 — permanently erased</span><br>
+          <strong>Tax your heirs never pay:</strong> ${fm(w.deferredTax)}<br>
+          <strong>Heirs' fresh annual depreciation:</strong> ${fm(heirsNewBasis / 27.5)}/yr<br>
+          <br>
+          All ${fm(w.deferredTax)} in deferred taxes evaporate. Your heirs restart the 27.5-year depreciation clock at a basis of ${fm(heirsNewBasis)}, generating ${fm(heirsNewBasis/27.5)}/yr in new paper losses to shelter their own income.
+        </div>
+      </div>
+      <div class="strat off">
+        <div class="strat-hd">Stock Portfolio Path <span class="badge gr">STEP-UP</span></div>
+        <div class="strat-bd">
+          <strong>Portfolio value at death:</strong> ${fm(stockFin)}<br>
+          <strong>Original investment:</strong> ${fm(r.totCash)}<br>
+          <strong>Unrealized gain:</strong> ${fm(stockFin - r.totCash)}<br>
+          <strong>Capital gains tax (step-up):</strong> <span class="c-pos">$0 — also erased</span><br>
+          <strong>Heirs' new basis:</strong> ${fm(stockFin)}<br>
+          <br>
+          Stocks also get a step-up at death, so the capital gains disappear too. But stocks generated zero annual tax savings and no depreciation to shelter income over those ${w.modelYrs} years.
+        </div>
+      </div>
+    </div>
+    <div class="alert good" style="margin-top:12px">
+      <strong>The Full Picture:</strong> Over ${w.modelYrs} years the real estate path generated ${fm(w.cumTaxSav)} in total tax savings, built ${fm(last.equity)} in equity, and defers ${fm(w.deferredTax)} in tax that vanishes at death — leaving your heirs <strong>${fm(heirsRE)}</strong> vs. <strong>${fm(stockFin)}</strong> in a stock portfolio, a <strong>${fm(heirsRE - stockFin)} generational advantage</strong>.
+    </div>
+    <p style="margin-top:12px;font-size:11px;color:var(--muted)">Tax savings scaled with new building basis after 1031. One exchange modeled. Deferred tax = accumulated depreciation × 25% recapture + appreciation × 20% cap gains + state. Step-up in basis (IRC §1014) under current law; estate tax not modeled. Not financial or legal advice.</p>`;
+
+  wc.innerHTML = html;
+}
+
+updateScenarioList();
+</script>
+</body>
+</html>
